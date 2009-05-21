@@ -32,13 +32,13 @@ Public Class FSFArguments
                 With _Settings
                     .AttackUri = Me.URL
                     .RequestTimeout = Me.TimeoutSeconds * 1000
+                    .RawPostData = Me.RawPostData
                 End With
 
             End If
             Return _Settings
         End Get
     End Property
-
 
 #End Region
 
@@ -224,5 +224,17 @@ Public CaptureGroup As Integer = -1
 
 #End Region
 
+
+#Region "POST Data"
+
+    '<[Option]("p", "post", HelpText:="Post Data Parameter", required:=False)> _
+    'Public PostData As String
+
+    <[Option]("p", "postdata", HelpText:="Raw Post Data", required:=False)> _
+    Public RawPostData As String
+
+    <[Option](Nothing, "print-responses", HelpText:="Prints HTTP repsonses to the screen", required:=False)> _
+    Public PrintResponses As Boolean
+#End Region
 End Class
 

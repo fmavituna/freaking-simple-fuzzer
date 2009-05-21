@@ -215,6 +215,8 @@ Module FSFMain
             If ValidHTTPStatus(Attack.Response.StatusCode) Then
                 Interlocked.Increment(FoundCounter)
 
+                If Options.PrintResponses Then Console.WriteLine(Attack.SourceCode)
+
                 Dim CaptureResult As String = String.Empty
 
                 If Options.Capture IsNot Nothing Then
@@ -324,3 +326,7 @@ Module FSFMain
 #End Region
 
 End Module
+
+
+'TODO: Add Post Parameter support to arguments with optional HTTP Encode on the fly
+'TODO: Add attack modifiers (scuh as base64 etc.), it should be plugin based as well just like attack modules.

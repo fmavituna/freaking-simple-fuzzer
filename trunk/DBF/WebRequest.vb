@@ -21,6 +21,15 @@ Public Class Request
 
 
     ''' <summary>
+    ''' Gets the post data if there returns RawPostData use it otherwise uses PostParameters.
+    ''' </summary>
+    ''' <param name="attack">The attack.</param>
+    ''' <returns></returns>
+    Private Shared Function GetPostData(ByVal attack As Attack) As String
+        If Not String.IsNullOrEmpty(attack.RawPostData) Then Return attack.RawPostData
+        Return GeneratePostData(attack.PostParameters)
+    End Function
+    ''' <summary>
     ''' Generate WebRequest with supplied setting
     ''' </summary>
     ''' <returns></returns>
@@ -141,10 +150,12 @@ Public Class Request
             requestStream.Close()
 
 
-        ElseIf Attack.PostParameters.Count > 0 Then
+        ElseIf HasPostData(Attack) Then
+            'TODO: If user forced to another method use it? Even though that's a stupid thing to do.
             WebReq.Method = "POST"
 
-            Dim PostData As String = GeneratePostData(Attack.PostParameters)
+
+            Dim PostData As String = GetPostData(Attack)
 
             WebReq.ContentType = "application/x-www-form-urlencoded"
             WebReq.ContentLength = PostData.Length
@@ -248,6 +259,17 @@ Public Class Request
         HttpRes.Close()
 
         Return HttpRes
+    End Function
+
+    ''' <summary>
+    ''' Determines whether the attack has post data or not.
+    ''' </summary>
+    ''' <param name="attack">The attack.</param>
+    ''' <returns>
+    ''' <c>true</c> if the attack has post data <c>true</c>; otherwise, <c>false</c>.
+    ''' </returns>
+    Private Shared Function HasPostData(ByVal attack As Attack) As Boolean
+        Return attack.PostParameters.Count > 0 OrElse Not String.IsNullOrEmpty(attack.RawPostData)
     End Function
 
 End Class
