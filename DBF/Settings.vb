@@ -214,4 +214,19 @@ Public Class Settings
         End Set
     End Property
 
+    Private _RawPostData As String
+
+    ''' <summary>
+    ''' Gets or sets the post data.
+    ''' </summary>
+    ''' <value>The post data.</value>
+    Public Property RawPostData() As String
+        Get
+            Return _RawPostData
+        End Get
+        Set(ByVal Value As String)
+            _RawPostData = Value
+        End Set
+    End Property
+
 End Class

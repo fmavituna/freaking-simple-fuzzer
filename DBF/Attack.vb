@@ -147,5 +147,16 @@ Public Class Attack
     Public PostParameters As New Dictionary(Of String, String)
     Public FileParameters As New Dictionary(Of String, String)
 
+    ''' <summary>
+    ''' Gets or sets the raw post data.
+    ''' </summary>
+    ''' <value>The raw post data.</value>
+    Public ReadOnly Property RawPostData() As String
+        Get
+            If String.IsNullOrEmpty(Me.Settings.RawPostData) Then Return String.Empty
+            Return Me.Settings.RawPostData.Replace(Settings.MARK, _CurrentAttack)
+        End Get
+    End Property
+
 
 End Class
