@@ -48,141 +48,150 @@ Public Class Request
 
         WebReq.AllowAutoRedirect = False
 
-        'Add Credentials
-        If Attack.Settings.Credential IsNot Nothing Then
-            WebReq.Credentials = Attack.Settings.Credential
-        End If
+		'If Attack.Settings.Credential IsNot Nothing Then
+		'	WebReq.Credentials = Attack.Settings.Credential
+		'End If
 
-        'Check Proxy
-        If Attack.Settings.ProxyEnabled Then
+		'Add Credentials
+		If Attack.Credentials IsNot Nothing Then
+			WebReq.Credentials = Attack.Credentials
+		End If
 
-            'If there is proxy use otherwise use IE proxy
-            If Attack.Settings.Proxy IsNot Nothing Then
-                WebReq.Proxy = Attack.Settings.Proxy
-            End If
+		'Disable System Proxy
+		If Attack.DisableSystemProxy Then
+			WebReq.Proxy = Nothing
+		End If
 
-        Else
-            WebReq.Proxy = Nothing
+		''Check Proxy
+		'If Attack.Settings.ProxyEnabled Then
 
-        End If
+		'	'If there is proxy use otherwise use IE proxy
+		'	If Attack.Settings.Proxy IsNot Nothing Then
+		'		WebReq.Proxy = Attack.Settings.Proxy
+		'	End If
 
-        'Add Headers
-        For Each Header As KeyValuePair(Of String, String) In Attack.Settings.Headers
-            Try
-                WebReq.Headers.Add(Header.Key, Header.Value)
+		'Else
+		'	WebReq.Proxy = Nothing
 
-            Catch ex As ArgumentException
-                'TODO: Fix here to find appropriate header and add it to normal ways to able users to ue injections in User-Agent and similiar fields
-                Debug.WriteLine("ERROR : This Header can not be added by headers use : " & Header.Key)
-                Return Nothing
+		'End If
 
-            End Try
-        Next Header
+		'Add Headers
+		For Each Header As KeyValuePair(Of String, String) In Attack.Settings.Headers
+			Try
+				WebReq.Headers.Add(Header.Key, Header.Value)
 
+			Catch ex As ArgumentException
+				'TODO: Fix here to find appropriate header and add it to normal ways to able users to ue injections in User-Agent and similiar fields
+				Debug.WriteLine("ERROR : This Header can not be added by headers use : " & Header.Key)
+				Return Nothing
 
-        'Request Timeout
-        WebReq.Timeout = Attack.Settings.RequestTimeout
-
-        If Attack.FileParameters.Count > 0 Then
-            Dim Boundary As String = "----------------------------" + DateTime.Now.Ticks.ToString("x")
-            WebReq.Method = "POST"
-            WebReq.ContentType = "multipart/form-data; boundary=" & Boundary
-            WebReq.KeepAlive = True
-
-            Dim memStream As New System.IO.MemoryStream()
-
-            Dim boundarybytes As Byte() = System.Text.Encoding.ASCII.GetBytes(vbNewLine & "--" & Boundary & vbNewLine)
-            Dim formdataTemplate As String = vbNewLine & "--" + Boundary & vbNewLine & "Content-Disposition: form-data; name=""{0}"";" & vbNewLine & vbNewLine & "{1}"
-
-            For Each PostParameter As KeyValuePair(Of String, String) In Attack.PostParameters
-
-                Dim formitem As String = String.Format(formdataTemplate, PostParameter.Key, PostParameter.Value)
-                Dim formitembytes As Byte() = System.Text.Encoding.UTF8.GetBytes(formitem)
-                memStream.Write(formitembytes, 0, formitembytes.Length)
-
-            Next
-
-            memStream.Write(boundarybytes, 0, boundarybytes.Length)
-
-            Dim headerTemplate As String = "Content-Disposition: form-data; name=""{0}""; filename=""{1}""" & vbNewLine & " Content-Type: application/octet-stream" & vbNewLine & vbNewLine
-
-            For Each FileParameter As KeyValuePair(Of String, String) In Attack.FileParameters
-
-                'No file to upload, Skip
-                If Not IO.File.Exists(FileParameter.Value) Then Continue For
+			End Try
+		Next Header
 
 
-                'TODO: Change this to support multiple files with different input names
-                Dim header As String = String.Format(headerTemplate, FileParameter.Key, FileParameter.Value)
+		'Request Timeout
+		WebReq.Timeout = Attack.Settings.RequestTimeout
 
-                Dim headerbytes As Byte() = System.Text.Encoding.UTF8.GetBytes(header)
+		If Attack.FileParameters.Count > 0 Then
+			Dim Boundary As String = "----------------------------" + DateTime.Now.Ticks.ToString("x")
+			WebReq.Method = "POST"
+			WebReq.ContentType = "multipart/form-data; boundary=" & Boundary
+			WebReq.KeepAlive = True
 
-                memStream.Write(headerbytes, 0, headerbytes.Length)
+			Dim memStream As New System.IO.MemoryStream()
 
-                Dim fileStreamx As New FileStream(FileParameter.Value, FileMode.Open, FileAccess.Read)
-                Dim buffer(1024 - 1) As Byte 'byte[] buffer = new byte[1024];
+			Dim boundarybytes As Byte() = System.Text.Encoding.ASCII.GetBytes(vbNewLine & "--" & Boundary & vbNewLine)
+			Dim formdataTemplate As String = vbNewLine & "--" + Boundary & vbNewLine & "Content-Disposition: form-data; name=""{0}"";" & vbNewLine & vbNewLine & "{1}"
 
-                Dim bytesRead As Integer = -1
+			For Each PostParameter As KeyValuePair(Of String, String) In Attack.PostParameters
 
-                While (bytesRead <> 0)
-                    bytesRead = fileStreamx.Read(buffer, 0, buffer.Length)
-                    memStream.Write(buffer, 0, bytesRead)
-                End While
+				Dim formitem As String = String.Format(formdataTemplate, PostParameter.Key, PostParameter.Value)
+				Dim formitembytes As Byte() = System.Text.Encoding.UTF8.GetBytes(formitem)
+				memStream.Write(formitembytes, 0, formitembytes.Length)
 
+			Next
 
-                memStream.Write(boundarybytes, 0, boundarybytes.Length)
-                fileStreamx.Close()
+			memStream.Write(boundarybytes, 0, boundarybytes.Length)
 
-            Next
+			Dim headerTemplate As String = "Content-Disposition: form-data; name=""{0}""; filename=""{1}""" & vbNewLine & " Content-Type: application/octet-stream" & vbNewLine & vbNewLine
 
+			For Each FileParameter As KeyValuePair(Of String, String) In Attack.FileParameters
 
-            WebReq.ContentLength = memStream.Length
-
-            Dim requestStream As Stream = WebReq.GetRequestStream()
-
-            memStream.Position = 0
-
-            Dim tempBuffer(CInt(memStream.Length - 1)) As Byte
-            memStream.Read(tempBuffer, 0, tempBuffer.Length)
-            memStream.Close()
-
-            requestStream.Write(tempBuffer, 0, tempBuffer.Length)
-            requestStream.Close()
+				'No file to upload, Skip
+				If Not IO.File.Exists(FileParameter.Value) Then Continue For
 
 
-        ElseIf HasPostData(Attack) Then
-            'TODO: If user forced to another method use it? Even though that's a stupid thing to do.
-            WebReq.Method = "POST"
+				'TODO: Change this to support multiple files with different input names
+				Dim header As String = String.Format(headerTemplate, FileParameter.Key, FileParameter.Value)
+
+				Dim headerbytes As Byte() = System.Text.Encoding.UTF8.GetBytes(header)
+
+				memStream.Write(headerbytes, 0, headerbytes.Length)
+
+				Dim fileStreamx As New FileStream(FileParameter.Value, FileMode.Open, FileAccess.Read)
+				Dim buffer(1024 - 1) As Byte 'byte[] buffer = new byte[1024];
+
+				Dim bytesRead As Integer = -1
+
+				While (bytesRead <> 0)
+					bytesRead = fileStreamx.Read(buffer, 0, buffer.Length)
+					memStream.Write(buffer, 0, bytesRead)
+				End While
 
 
-            Dim PostData As String = GetPostData(Attack)
+				memStream.Write(boundarybytes, 0, boundarybytes.Length)
+				fileStreamx.Close()
 
-            WebReq.ContentType = "application/x-www-form-urlencoded"
-            WebReq.ContentLength = PostData.Length
+			Next
 
-            Dim ReqStream As Stream = Nothing
-            Try
-                ReqStream = WebReq.GetRequestStream()
-                Dim PostByte As Byte() = Encoding.ASCII.GetBytes(PostData)
-                ReqStream.Write(PostByte, 0, PostByte.Length)
 
-            Catch WebEx As Net.WebException
-                Console.Error.WriteLine("Form stream write error !")
+			WebReq.ContentLength = memStream.Length
 
-            Finally
-                If ReqStream IsNot Nothing Then ReqStream.Close()
+			Dim requestStream As Stream = WebReq.GetRequestStream()
 
-            End Try
+			memStream.Position = 0
 
-        Else
-            'GET / POST
-            WebReq.Method = Attack.HTTPMethod
-            WebReq.KeepAlive = True
+			Dim tempBuffer(CInt(memStream.Length - 1)) As Byte
+			memStream.Read(tempBuffer, 0, tempBuffer.Length)
+			memStream.Close()
 
-        End If
+			requestStream.Write(tempBuffer, 0, tempBuffer.Length)
+			requestStream.Close()
 
-        Return WebReq
-    End Function
+
+		ElseIf HasPostData(Attack) Then
+			'TODO: If user forced to another method use it? Even though that's a stupid thing to do.
+			WebReq.Method = "POST"
+
+
+			Dim PostData As String = GetPostData(Attack)
+
+			WebReq.ContentType = "application/x-www-form-urlencoded"
+			WebReq.ContentLength = PostData.Length
+
+			Dim ReqStream As Stream = Nothing
+			Try
+				ReqStream = WebReq.GetRequestStream()
+				Dim PostByte As Byte() = Encoding.ASCII.GetBytes(PostData)
+				ReqStream.Write(PostByte, 0, PostByte.Length)
+
+			Catch WebEx As Net.WebException
+				Console.Error.WriteLine("Form stream write error !")
+
+			Finally
+				If ReqStream IsNot Nothing Then ReqStream.Close()
+
+			End Try
+
+		Else
+			'GET / POST
+			WebReq.Method = Attack.HTTPMethod
+			WebReq.KeepAlive = True
+
+		End If
+
+		Return WebReq
+	End Function
 
     ''' <summary>
     ''' Generate Post Data for request from PostParameters
@@ -202,7 +211,6 @@ Public Class Request
 
         Return PostData
     End Function
-
 
 
     ''' <summary>
