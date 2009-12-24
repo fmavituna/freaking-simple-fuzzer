@@ -121,12 +121,7 @@ Module FSFMain
             Environment.Exit(1)
         End If
 
-        'Credential Details
-        Dim UserName As String = String.Empty
-        Dim Password As String = String.Empty
-        Dim Domain As String = String.Empty
-
-        Start()
+		Start()
 
     End Sub
 
@@ -149,19 +144,40 @@ Module FSFMain
 
         While ListReader.ListAvailable
 
-            Dim Attack As New Attack(ListReader.GetNext(), Options.Settings)
-            Attack.HTTPMethod = Options.HTTPMethod
 
-            AddHandler Attack.AttackFinished, AddressOf Attacked
+			Dim fuzz2 As String = String.Empty
+			Dim currentFuzzWord As String = ListReader.GetNext()
+			Dim fuzz1 As String = currentFuzzWord
 
-            ThreadPool.Open()
+			'Handle two parameter fuzzing
+			If Options.UseTwoParameterFuzzing Then
+				Dim splitpos As Integer = currentFuzzWord.IndexOf(":"c)
+				If splitpos > -1 Then
+					fuzz1 = currentFuzzWord.Substring(0, splitpos)
+					fuzz2 = currentFuzzWord.Substring(splitpos + 1)
+				End If
+			End If
 
-            Dim AttackJob As New Thread(AddressOf Attack.Attack)
-            AttackJob.Start()
 
-            ThreadPool.WaitForThreads()
+			Dim Attack As New Attack(fuzz1, fuzz2, Options.Settings)
+			With Attack
+				.AuthUsername = Options.AuthenticationUser
+				.AuthPassword = Options.AuthenticationPassword
+				.AuthDomain = Options.AuthenticationDomain
 
-        End While
+				.HTTPMethod = Options.HTTPMethod
+			End With
+
+			AddHandler Attack.AttackFinished, AddressOf Attacked
+
+			ThreadPool.Open()
+
+			Dim AttackJob As New Thread(AddressOf Attack.Attack)
+			AttackJob.Start()
+
+			ThreadPool.WaitForThreads()
+
+		End While
         ListReader.Close()
 
         ThreadPool.AllJobsPushed()
@@ -208,43 +224,46 @@ Module FSFMain
             End If
 
             'Output
-            Dim Result As String = Attack.Uri.PathAndQuery.PadRight(50) & Convert.ToInt16(Attack.Response.StatusCode).ToString.PadRight(10)
+			Dim attackWord As String = Attack.CurrentAttack
+			If Not String.IsNullOrEmpty(Attack.CurrentAttack2) Then attackWord = String.Format("{0}:{1}", Attack.CurrentAttack, Attack.CurrentAttack2)
 
-            Console.CursorLeft = 0
+			Dim Result As String = String.Format("{0}{1}{2}", Attack.Uri.PathAndQuery.PadRight(50), Convert.ToInt16(Attack.Response.StatusCode).ToString.PadRight(5), attackWord.ToString.PadRight(10))
 
-            If ValidHTTPStatus(Attack.Response.StatusCode) Then
-                Interlocked.Increment(FoundCounter)
+			Console.CursorLeft = 0
 
-                If Options.PrintResponses Then Console.WriteLine(Attack.SourceCode)
+			If ValidHTTPStatus(Attack.Response.StatusCode) Then
+				Interlocked.Increment(FoundCounter)
 
-                Dim CaptureResult As String = String.Empty
+				If Options.PrintResponses Then Console.WriteLine(Attack.SourceCode)
 
-                If Options.Capture IsNot Nothing Then
-                    For Each CapData As Match In Options.Capture.Matches(Attack.SourceCode)
-                        Dim CapValue As String = CapData.Value
-                        If Options.CaptureGroup > -1 AndAlso (CapData.Groups.Count > Options.CaptureGroup) Then CapValue = CapData.Groups(Options.CaptureGroup).Value
-                        CaptureResult &= String.Format(Options.MatchTemplate, CapValue, vbNewLine)
-                    Next
+				Dim CaptureResult As String = String.Empty
 
-                End If
+				If Options.Capture IsNot Nothing Then
+					For Each CapData As Match In Options.Capture.Matches(Attack.SourceCode)
+						Dim CapValue As String = CapData.Value
+						If Options.CaptureGroup > -1 AndAlso (CapData.Groups.Count > Options.CaptureGroup) Then CapValue = CapData.Groups(Options.CaptureGroup).Value
+						CaptureResult &= String.Format(Options.MatchTemplate, CapValue, vbNewLine)
+					Next
 
-                If Not String.IsNullOrEmpty(Options.CaptureOutput) Then
-                    SyncLock OutputWriteLock
-                        My.Computer.FileSystem.WriteAllText(Options.CaptureOutput, String.Format(Options.Template, Attack.CurrentAttack, CaptureResult, vbNewLine), True)
-                    End SyncLock
-                End If
+				End If
 
-                Console.WriteLine(Result)
+				If Not String.IsNullOrEmpty(Options.CaptureOutput) Then
+					SyncLock OutputWriteLock
+						My.Computer.FileSystem.WriteAllText(Options.CaptureOutput, String.Format(Options.Template, Attack.CurrentAttack, CaptureResult, vbNewLine, Attack.CurrentAttack2), True)
+					End SyncLock
+				End If
 
-            Else
-                Console.Write(Progress((GenericCounter - FoundCounter) Mod Progress.Length).ToString.PadRight(50))
-                Console.Write(Convert.ToInt16(Attack.Response.StatusCode).ToString)
-                Console.Write(" - ")
-                Console.Write(GenericCounter.ToString)
+				Console.WriteLine(Result)
 
-            End If
+			Else
+				Console.Write(Progress((GenericCounter - FoundCounter) Mod Progress.Length).ToString.PadRight(50))
+				Console.Write(Convert.ToInt16(Attack.Response.StatusCode).ToString)
+				Console.Write(" - ")
+				Console.Write(GenericCounter.ToString)
 
-        End SyncLock
+			End If
+
+		End SyncLock
 
         Interlocked.Increment(GenericCounter)
 
@@ -255,42 +274,6 @@ Module FSFMain
 
 
 #Region "Helpers"
-
-    ''' <summary>
-    ''' Add Credentials to supplied Request Settings
-    ''' </summary>
-    ''' <param name="UserName"></param>
-    ''' <param name="Password"></param>
-    ''' <param name="Domain"></param>
-    ''' <param name="RequestSettings">Request settings to modify</param>
-    ''' <remarks></remarks>
-    Private Sub AddCredentials(ByVal userName As String, ByVal password As String, ByVal domain As String, ByVal requestSettings As Settings, ByVal argument As String)
-
-        Dim ProxyCredentials As Boolean
-        ProxyCredentials = argument.TrimStart("-".ToCharArray).StartsWith("p", StringComparison.InvariantCultureIgnoreCase)
-
-        'Add Credentials
-        If requestSettings.UseDefaultCredentials AndAlso Not ProxyCredentials Then
-            requestSettings.Credential = CredentialCache.DefaultNetworkCredentials
-
-        ElseIf requestSettings.UseDefaultCredentialsProxy AndAlso ProxyCredentials Then
-            requestSettings.Proxy.Credentials = CredentialCache.DefaultNetworkCredentials
-
-        ElseIf Not userName = String.Empty Then
-            Dim Credentials As New NetworkCredential(userName, password)
-            If Not domain = String.Empty Then Credentials.Domain = domain
-
-
-            If ProxyCredentials Then
-                requestSettings.Proxy.Credentials = Credentials
-
-            Else
-                requestSettings.Credential = Credentials
-
-            End If
-
-        End If
-    End Sub
 
 
     ''' <summary>

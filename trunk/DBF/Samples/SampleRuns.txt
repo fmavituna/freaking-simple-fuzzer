@@ -1,2 +1,8 @@
-﻿-u "http://www.example.com/SQLInjection-Numeric/?p=[FUZZ]" -m integer -o 1-100 --capture-output "C:\out\out.txt" -c .*
+﻿fsf.exe -u "http://www.example.com/SQLInjection-Numeric/?p=[FUZZ]" -m integer -o 1-100 --capture-output "C:\out\out.txt" -c .*
+
 fsf.exe -u "http://code.google.com/hosting/search?q=php&filter=1&start=[FUZZ]" -m integer -o 0-30-1000, --capture-output "C:\out\gc.txt" -c "href=./p/([^/]*)/." --capture-group 1 --capture-template "{1}" --match-template "{0}{1}"
+
+fsf.exe -u "http://www.example.com/SQLInjection-Numeric/?p=[FUZZ]" -m integer -o 1-100 --capture-output "C:\out\out.txt" -c .*
+
+Basic Auth Dictionary Attack:
+fsf.exe -u "http://example.com:8001/Basic-Auth/" --username [FUZZ] --password [FUZZ2] -m wordlist -o "C:\Wordlist\users.txt" -f

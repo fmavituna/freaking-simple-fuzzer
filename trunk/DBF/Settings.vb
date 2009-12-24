@@ -12,7 +12,8 @@ Public Class Settings
 
 #End Region
 
-    Public Const MARK As String = "[FUZZ]"
+	Public Const MARK As String = "[FUZZ]"
+	Public Const MARK2 As String = "[FUZZ2]"
 
     Private _AttackUri As String
 
