@@ -42,7 +42,7 @@
     <DebugType>full</DebugType>
     <DefineDebug>true</DefineDebug>
     <DefineTrace>true</DefineTrace>
-    <OutputPath>..\bin\Debug\</OutputPath>
+    <OutputPath>..\Final-Debug\</OutputPath>
     <DocumentationFile>FSF.xml</DocumentationFile>
     <NoWarn>
     </NoWarn>

@@ -77,6 +77,7 @@ Public Class FSFArguments
 			.AppendLine("  FSF -h 404 -o c:\Wordlist\directorynames.txt -u http://example.com/" & Settings.MARK & "/")
 
 			.AppendLine("  FSF -h 404,302 -f c:\Wordlist\filenames.txt -u http://example.com/" & Settings.MARK & ".aspx")
+			.AppendLine("  FSF -h 404,302 -m integer -o 1-1000-1-0000 -u http://example.com/" & Settings.MARK & "/")
 
 		End With
 
