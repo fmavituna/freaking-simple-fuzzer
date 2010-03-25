@@ -34,6 +34,7 @@ Public Class FSFArguments
 					.AttackUri = Me.URL
 					.RequestTimeout = Me.TimeoutSeconds * 1000
 					.RawPostData = Me.RawPostData
+					.RawPostDataFile = Me.RawPostDataFile
 				End With
 
 			End If
@@ -132,7 +133,15 @@ Public Class FSFArguments
 	''' <remarks></remarks>
 	Public ReadOnly Property AttackReader() As IReader
 		Get
-			Return FuzzingModules.Single(Function(plugin) plugin.Name.ToLowerInvariant = _AttackType.ToLowerInvariant)
+			If String.IsNullOrEmpty(_AttackType) Then Return Nothing
+
+			Try
+				Return FuzzingModules.Single(Function(plugin) plugin.Name.ToLowerInvariant = _AttackType.ToLowerInvariant)
+
+			Catch ex As Exception
+				Return Nothing
+
+			End Try
 		End Get
 	End Property
 
@@ -245,14 +254,14 @@ Public Class FSFArguments
 
 #Region "POST Data"
 
-	'<[Option]("p", "post", HelpText:="Post Data Parameter", required:=False)> _
-	'Public PostData As String
+	<[Option]("p", "postdata", HelpText:="Raw POST Data", required:=False)> _
+ Public RawPostData As String
 
-	<[Option]("p", "postdata", HelpText:="Raw Post Data", required:=False)> _
-	Public RawPostData As String
+	<[Option]("s", "postfile", HelpText:="Read raw POST data from a file. This will overwrite -p,-postdata parameter", required:=False)> _
+ Public RawPostDataFile As String
 
 	<[Option](Nothing, "print-responses", HelpText:="Prints HTTP repsonses to the screen", required:=False)> _
-	Public PrintResponses As Boolean
+ Public PrintResponses As Boolean
 #End Region
 End Class
 

@@ -118,7 +118,7 @@ Module FSFMain
         Dim Parser As New CommandLineParser()
 
         If Not (Parser.ParseArguments(args, Options, Console.Out)) Then
-            Environment.Exit(1)
+			ErrorQuit("Supplied arguments could not parsed.", ErrorCode.InvalidArgument)
         End If
 
 		Start()
@@ -138,11 +138,22 @@ Module FSFMain
         Console.Clear()
 
         AddHandler ThreadPool.ThreadsFinished, AddressOf HandleFinished
+		Dim ListReader As IReader = Options.AttackReader()
 
-        Dim ListReader As IReader = Options.AttackReader()
-        ListReader.StartReading(Options.FuzzingModuleOption)
+		If ListReader Is Nothing Then
+			ErrorQuit("Coudln't find the selected module. You need to choose a valid fuzzing module. Use -m and supply a valid module name.", ErrorCode.Incorrect)
+		End If
 
-        While ListReader.ListAvailable
+		Try
+			ListReader.StartReading(Options.FuzzingModuleOption)
+
+		Catch ex As Exception
+			ErrorQuit(String.Format("Error during the ""{0}"" module start", ListReader.Name), ErrorCode.Incorrect)
+
+		End Try
+
+
+		While ListReader.ListAvailable
 
 
 			Dim fuzz2 As String = String.Empty
@@ -178,11 +189,11 @@ Module FSFMain
 			ThreadPool.WaitForThreads()
 
 		End While
-        ListReader.Close()
+		ListReader.Close()
 
-        ThreadPool.AllJobsPushed()
+		ThreadPool.AllJobsPushed()
 
-        If Console.CursorLeft = 0 Then Console.WriteLine(" ".PadRight(Console.WindowWidth - 1))
+		If Console.CursorLeft = 0 Then Console.WriteLine(" ".PadRight(Console.WindowWidth - 1))
 
     End Sub
 
@@ -280,9 +291,9 @@ Module FSFMain
     ''' Quit from application
     ''' </summary>
     ''' <remarks></remarks>
-    Private Sub Quit()
-        Environment.Exit(0)
-    End Sub
+	Private Sub Quit(ByVal code As Integer)
+		Environment.Exit(ErrorCode.Successfull)
+	End Sub
 
     ''' <summary>
     ''' Valid HTTP Status
@@ -301,10 +312,10 @@ Module FSFMain
     ''' </summary>
     ''' <param name="message"></param>
     ''' <remarks></remarks>
-    Private Sub ErrorQuit(ByVal message As String)
-        Console.Error.WriteLine(message)
-        Quit()
-    End Sub
+	Public Sub ErrorQuit(ByVal message As String, ByVal errorCode As ErrorCode)
+		Console.Error.WriteLine(message)
+		Quit(errorCode)
+	End Sub
 
 #End Region
 

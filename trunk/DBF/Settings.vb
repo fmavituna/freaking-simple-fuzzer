@@ -131,7 +131,16 @@ Public Class Settings
 
 
 
-    ''' <summary>
+	Private _rawPostDataFile As String
+	Public Property RawPostDataFile() As String
+		Get
+			Return _rawPostDataFile
+		End Get
+		Set(ByVal value As String)
+			_rawPostDataFile = value
+		End Set
+	End Property
+	''' <summary>
     ''' Adds the header.
     ''' </summary>
     ''' <param name="Name">The name.</param>
@@ -215,7 +224,7 @@ Public Class Settings
         End Set
     End Property
 
-    Private _RawPostData As String
+	Private _RawPostData As String = Nothing
 
     ''' <summary>
     ''' Gets or sets the post data.
@@ -223,7 +232,17 @@ Public Class Settings
     ''' <value>The post data.</value>
     Public Property RawPostData() As String
         Get
-            Return _RawPostData
+			If Not String.IsNullOrEmpty(_rawPostDataFile) AndAlso _RawPostData Is Nothing Then
+				Try
+					'Read it once and cache it in the memory
+					_RawPostData = My.Computer.FileSystem.ReadAllText(_rawPostDataFile)
+
+				Catch ex As IO.IOException
+					ErrorQuit(String.Format("Couldn't read the POST data file: {0}", _rawPostDataFile), ErrorCode.CouldntFindFile)
+				End Try
+
+			End If
+			Return _RawPostData
         End Get
         Set(ByVal Value As String)
             _RawPostData = Value
