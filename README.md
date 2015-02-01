@@ -1,5 +1,4 @@
-# trunk
-
+##Freakin' Simple Fuzzer
 FSF is a plug-in based freakin' simple fuzzer for fuzzing web applications and scraping data.
 
 ## Platform
